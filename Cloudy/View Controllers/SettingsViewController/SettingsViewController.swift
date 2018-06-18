@@ -86,32 +86,40 @@ extension SettingsViewController: UITableViewDataSource, UITableViewDelegate {
 
         switch section {
         case .time:
-            cell.mainLabel.text = (indexPath.row == 0) ? "12 Hour" : "24 Hour"
+            guard let timeNotation = TimeNotation(rawValue: indexPath.row)
+                else { fatalError("Unexpected Index Path") }
+            
+            // Initialize the View Model
+            let viewModel = SettingsViewTimeViewModel(timeNotation: timeNotation)
+            
+            // Configure Cell
+            cell.mainLabel.text = viewModel.text
+            cell.accessoryType = viewModel.accessoryType
 
-            let timeNotation = UserDefaults.timeNotation()
-            if indexPath.row == timeNotation.rawValue {
-                cell.accessoryType = .checkmark
-            } else {
-                cell.accessoryType = .none
-            }
         case .units:
-            cell.mainLabel.text = (indexPath.row == 0) ? "Imperial" : "Metric"
+            guard let unitsNotation = UnitsNotation(rawValue: indexPath.row)
+                else { fatalError("Unexpected Index Path") }
 
-            let unitsNotation = UserDefaults.unitsNotation()
-            if indexPath.row == unitsNotation.rawValue {
-                cell.accessoryType = .checkmark
-            } else {
-                cell.accessoryType = .none
-            }
+            // Initialize View Model
+            let viewModel = SettingsViewUnitsViewModel(unitsNotation: unitsNotation)
+            
+            // Configure Cell
+            cell.mainLabel.text = viewModel.text
+            cell.accessoryType = viewModel.accessoryType
+            
         case .temperature:
+            guard let temperatureNotation = TemperatureNotation(rawValue: indexPath.row)
+                else { fatalError("Unexpected Index Path") }
+            
+            // Intitialize View Model
+            let viewModel = SettingsViewTemperatureViewModel(temperatureNotation: temperatureNotation)
+            
+            // Configure Cell
+            cell.mainLabel.text = viewModel.text
+            cell.accessoryType = viewModel.accessoryType
+            
             cell.mainLabel.text = (indexPath.row == 0) ? "Fahrenheit" : "Celcius"
 
-            let temperatureNotation = UserDefaults.temperatureNotation()
-            if indexPath.row == temperatureNotation.rawValue {
-                cell.accessoryType = .checkmark
-            } else {
-                cell.accessoryType = .none
-            }
         }
 
         return cell
