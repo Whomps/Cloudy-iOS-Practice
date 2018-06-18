@@ -6,6 +6,8 @@
 //  Copyright © 2018 Cocoacasts. All rights reserved.
 //
 
+import RxSwift
+import RxCocoa
 import Foundation
 import CoreLocation
 
