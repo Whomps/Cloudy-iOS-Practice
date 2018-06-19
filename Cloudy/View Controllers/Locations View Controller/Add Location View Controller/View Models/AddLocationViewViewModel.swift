@@ -9,13 +9,15 @@
 import RxSwift
 import RxCocoa
 import Foundation
-import CoreLocation
 
 class AddLocationViewViewModel {
     
     // MARK: Initialization
     
-    init(query: Driver<String>) {
+    init(query: Driver<String>, locationService: LocationService) {
+        // Set Properties
+        self.locationService = locationService
+        
         query
             .throttle(0.5)
             .distinctUntilChanged()
@@ -47,7 +49,7 @@ class AddLocationViewViewModel {
     
     // MARK: -
     
-    private lazy var geocoder = CLGeocoder()
+    private let locationService: LocationService
  
     func location(at index: Int) -> Location? {
         guard index < _locations.value.count else { return nil }
@@ -62,7 +64,7 @@ class AddLocationViewViewModel {
     // MARK: - Helper Methods
     
     private func geocode(addressString: String?) {
-        guard let addressString = addressString, !addressString.isEmpty else {
+        guard let addressString = addressString, addressString.count > 2 else {
             _locations.accept([])
             return
         }
@@ -70,22 +72,13 @@ class AddLocationViewViewModel {
         _querying.accept(true)
     
         // Geocode Address String
-        geocoder.geocodeAddressString(addressString) { [weak self] (placemarks, error) in
-            var locations: [Location] = []
-            
+        locationService.geocode(addressString: addressString) { [weak self] (locations, error) in
             self?._querying.accept(false)
+            self?._locations.accept(locations)
             
             if let error = error {
                 print("Unable to Forward Geocode Address (\(error))")
-            } else if let _placemarks = placemarks {
-                locations = _placemarks.flatMap({ (placemark) -> Location? in
-                    guard let name = placemark.name else { return nil }
-                    guard let location = placemark.location else { return nil }
-                    return Location(name: name, latitude: location.coordinate.latitude, longitude: location.coordinate.longitude)
-                })
             }
-            
-            self?._locations.accept(locations)
         }
     }
     
