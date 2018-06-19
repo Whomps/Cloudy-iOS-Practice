@@ -13,40 +13,45 @@ import CoreLocation
 
 class AddLocationViewViewModel {
     
-    // MARK: - Properties
+    // MARK: Initialization
     
-    var query: String = "" {
-        didSet {
-            geocode(addressString: query)
-        }
+    init(query: Driver<String>) {
+        query
+            .throttle(0.5)
+            .distinctUntilChanged()
+            .drive(onNext: { [weak self] (addressString) in
+                self?.geocode(addressString: addressString)
+            })
+            .disposed(by: disposeBag)
     }
     
     // MARK: -
-
-    private var querying: Bool = false {
-        didSet{
-            queryingDidChange?(querying)
-        }
-    }
     
-    private var locations: [Location] = [] {
-        didSet {
-            locationsDidChange?(locations)
-        }
-    }
+    private let disposeBag = DisposeBag()
+    
+    private let _locations = BehaviorRelay<[Location]>(value: [])
+    
+    private let _querying = BehaviorRelay<Bool>(value: false)
+    
+    // MARK: -
+
+    var querying: Driver<Bool> { return _querying.asDriver() }
+    
+    var locations: Driver<[Location]> { return _locations.asDriver() }
     
     // MARK: -
     
     var hasLocations: Bool { return numberOfLocations > 0 }
-    var numberOfLocations: Int { return locations.count }
+    
+    var numberOfLocations: Int { return _locations.value.count }
     
     // MARK: -
     
     private lazy var geocoder = CLGeocoder()
  
     func location(at index: Int) -> Location? {
-        guard index < locations.count else { return nil }
-        return locations[index]
+        guard index < _locations.value.count else { return nil }
+        return _locations.value[index]
     }
     
     func viewModelForLocation(at index: Int) -> LocationRepresentable? {
@@ -58,17 +63,17 @@ class AddLocationViewViewModel {
     
     private func geocode(addressString: String?) {
         guard let addressString = addressString, !addressString.isEmpty else {
-            locations = []
+            _locations.accept([])
             return
         }
     
-        querying = true
+        _querying.accept(true)
     
         // Geocode Address String
         geocoder.geocodeAddressString(addressString) { [weak self] (placemarks, error) in
             var locations: [Location] = []
             
-            self?.querying = false
+            self?._querying.accept(false)
             
             if let error = error {
                 print("Unable to Forward Geocode Address (\(error))")
@@ -80,15 +85,9 @@ class AddLocationViewViewModel {
                 })
             }
             
-            self?.locations = locations
+            self?._locations.accept(locations)
         }
     }
-    
-    // MARK: -
-    
-    var queryingDidChange: ((Bool) -> ())?
-    var locationsDidChange: (([Location]) -> ())?
-    
     
 }
 
